@@ -9,17 +9,10 @@
 
 static TWI_isr_cb  TWI_cb_     = NULL;
 static void       *TWI_cb_ctx_ = NULL;
-static uint8_t     isr_set_    = 0;
 
 void regiter_TWI_isr_cb(TWI_isr_cb cb, void* ctx) {
-    if (cb) {
-        TWI_cb_ = cb;
-    } else {
-        return;
-    }
-
+    TWI_cb_ = cb;
     TWI_cb_ctx_ = ctx;
-    isr_set_ = 1;
 }
 
 /**
@@ -32,22 +25,19 @@ static inline uint8_t TWI_status(void) {
     return TWSR & 0xF8; // mask lower 3 bits (prescaler value)
 }
 
-uint8_t TWI_init(TWI_clock_source clk_src, uint8_t bit_rate, uint8_t en_isr) {
+void TWI_init(TWI_clock_source clk_src, uint8_t bit_rate) {
     cli();
 
     TWSR  = clk_src;      // set prescaler
     TWBR  = bit_rate;     // set bitrate
 
-    if (en_isr) {
-        if (!isr_set_) return 1;
+    if (TWI_cb_) {
         TWCR = (1 << TWIE);  // TWI interrupt enable
     }
 
     TWCR |= (1 << TWEN);  // enable TWI
 
     sei();
-
-    return 0;
 }
 
 uint8_t TWI_start_wait(void) {

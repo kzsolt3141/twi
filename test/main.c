@@ -48,8 +48,7 @@ int main(void) {
 
     regiter_USART_RXC_cb(USART_RXC_cb_handle, &USART_RXC_ctx);
 
-    sts = USART_init(baud_rate, 1);
-    if (sts) return sts;
+    USART_init(baud_rate);
 
     printf("Init Done UART baud: %u\n", (uint16_t)baud_rate);
 
@@ -59,8 +58,7 @@ int main(void) {
     TWI_cb_ctx twi_ctx = {};
     regiter_TWI_isr_cb(TWI_cb_handle, &twi_ctx);
 
-    sts = TWI_init(TWI_PS_1, 2, 1);
-    if (sts) return sts;
+    TWI_init(TWI_PS_1, 2);
 
     printf("TWI init done\n");
 

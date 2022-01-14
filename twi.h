@@ -26,16 +26,12 @@ typedef void (*TWI_isr_cb)(void* ctx);
 void regiter_TWI_isr_cb(TWI_isr_cb cb, void* ctx);
 
 /**
- * Initialize SPI as master device
+ * Initialize SPI as master device. ISR callback shour be registered before init.
  * set SCL to F_CPU / (16 + 2 * TWBR * prescaler)
  * @param [in] clk_src   select clock prescaler for SCL frequency, see TWI_clock_source
  * @param [in] bit_rate  select bit rate for SCL frequency
- * @param [in] en_isr    enable TWI data ready interrupt
- *
- * @return 0 for success
- *         other in case of fail
  */
-uint8_t TWI_init (TWI_clock_source clk_src, uint8_t bit_rate, uint8_t en_isr);
+void TWI_init (TWI_clock_source clk_src, uint8_t bit_rate);
 
 /**
  * Send start bit condition through TWI interface:
