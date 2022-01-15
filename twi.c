@@ -10,19 +10,67 @@
 static TWI_isr_cb  TWI_cb_     = NULL;
 static void       *TWI_cb_ctx_ = NULL;
 
-void regiter_TWI_isr_cb(TWI_isr_cb cb, void* ctx) {
-    TWI_cb_ = cb;
-    TWI_cb_ctx_ = ctx;
-}
-
 /**
  * After each thransfer the TWI controller signalizes the
  * status of the transfer writing a status code into TWSR register
  * the function returnes the status register value
  * obs: lower 3 bits are not foo status => masking them is required
  */
-static inline uint8_t TWI_status(void) {
+static const inline uint8_t TWI_status(void) {
     return TWSR & 0xF8; // mask lower 3 bits (prescaler value)
+}
+
+static const inline uint8_t TWI_start_wait(void) {
+    TWCR |= (1 << TWINT) |  // clearing this flag (by writing 1) will start a transfer
+            (1 << TWSTA);   // set controller to send start bit trough TWI
+    while ((TWCR & (1 << TWINT)) == 0);  // wait until TWINT is cleared
+
+    return TWI_status();
+}
+
+static inline void TWI_stop(void) {
+    TWCR |= (1 << TWINT)|  // clearing this flag will start a transfer
+            (1 << TWSTO);  // enable TWI interface
+}
+
+static uint8_t TWI_write_wait(uint8_t data) {
+    TWDR = data;           // insert 8bit data in data register
+
+    TWCR |= (1 << TWINT);    // start a transfer by clearing TWINT flag
+
+    TWCR &= ~(1 << TWSTA);   // start bit condition set to 0 !!!!! NOT HERE!
+
+    while ((TWCR & (1 << TWINT)) == 0); // wait until TWINT is cleared
+
+    return TWI_status();
+}
+
+static  uint8_t TWI_read_ACK(uint8_t* data) {
+    TWCR |= (1 << TWINT)|               // start a transfer by clearing TWINT flag
+            (1 << TWEA);                // send/receive acknowledge bit
+
+    while ((TWCR & (1 << TWINT)) == 0); // wait until TWINT is cleared
+
+    *data = TWDR;                       // return read out data
+
+    return TWI_status();
+}
+
+static uint8_t TWI_read_NACK_wait(uint8_t* data) {
+    TWCR &= ~(1 << TWEA);  // disable ACK
+
+    TWCR |= (1 << TWINT);  // start a transfer by clearing TWINT flag
+
+    while ((TWCR & (1 << TWINT)) == 0);  // wait until TWINT is cleared
+
+    *data = TWDR;  // return read out data
+
+    return TWI_status();
+}
+
+void regiter_TWI_isr_cb(TWI_isr_cb cb, void* ctx) {
+    TWI_cb_ = cb;
+    TWI_cb_ctx_ = ctx;
 }
 
 void TWI_init(TWI_clock_source clk_src, uint8_t bit_rate) {
@@ -38,54 +86,6 @@ void TWI_init(TWI_clock_source clk_src, uint8_t bit_rate) {
     TWCR |= (1 << TWEN);  // enable TWI
 
     sei();
-}
-
-uint8_t TWI_start_wait(void) {
-    TWCR |= (1 << TWINT) |  // clearing this flag (by writing 1) will start a transfer
-            (1 << TWSTA);   // set controller to send start bit trough TWI
-    while ((TWCR & (1 << TWINT)) == 0);  // wait until TWINT is cleared
-
-    return TWI_status();
-}
-
-void TWI_stop(void) {
-    TWCR |= (1 << TWINT)|  // clearing this flag will start a transfer
-            (1 << TWSTO);  // enable TWI interface
-}
-
-uint8_t TWI_write_wait(uint8_t data) {
-    TWDR = data;           // insert 8bit data in data register
-
-    TWCR |= (1 << TWINT);    // start a transfer by clearing TWINT flag
-
-    TWCR &= ~(1 << TWSTA);   // start bit condition set to 0 !!!!! NOT HERE!
-
-    while ((TWCR & (1 << TWINT)) == 0); // wait until TWINT is cleared
-
-    return TWI_status();
-}
-
-uint8_t TWI_read_ACK(uint8_t* data) {
-    TWCR |= (1 << TWINT)|               // start a transfer by clearing TWINT flag
-            (1 << TWEA);                // send/receive acknowledge bit
-
-    while ((TWCR & (1 << TWINT)) == 0); // wait until TWINT is cleared
-
-    *data = TWDR;                       // return read out data
-
-    return TWI_status();
-}
-
-uint8_t TWI_read_NACK_wait(uint8_t* data) {
-    TWCR &= ~(1 << TWEA);  // disable ACK
-
-    TWCR |= (1 << TWINT);  // start a transfer by clearing TWINT flag
-
-    while ((TWCR & (1 << TWINT)) == 0);  // wait until TWINT is cleared
-
-    *data = TWDR;  // return read out data
-
-    return TWI_status();
 }
 
 uint8_t TWI_read_reg_burst (
