@@ -16,11 +16,11 @@ static void       *TWI_cb_ctx_ = NULL;
  * the function returnes the status register value
  * obs: lower 3 bits are not foo status => masking them is required
  */
-static const inline uint8_t TWI_status(void) {
+inline static uint8_t TWI_status(void) {
     return TWSR & 0xF8; // mask lower 3 bits (prescaler value)
 }
 
-static const inline uint8_t TWI_start_wait(void) {
+inline static  uint8_t TWI_start_wait(void) {
     TWCR |= (1 << TWINT) |  // clearing this flag (by writing 1) will start a transfer
             (1 << TWSTA);   // set controller to send start bit trough TWI
     while ((TWCR & (1 << TWINT)) == 0);  // wait until TWINT is cleared
@@ -28,7 +28,7 @@ static const inline uint8_t TWI_start_wait(void) {
     return TWI_status();
 }
 
-static inline void TWI_stop(void) {
+inline static void TWI_stop(void) {
     TWCR |= (1 << TWINT)|  // clearing this flag will start a transfer
             (1 << TWSTO);  // enable TWI interface
 }

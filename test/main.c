@@ -62,11 +62,20 @@ int main(void) {
 
     printf("TWI init done\n");
 
-    sts = TWI_sniff(0x00, 0x7F, &slave_addr);
-    if (sts == 0xFF) printf("TWI error\n");
+    uint8_t start = 0x00;
+    const uint8_t end = 0x7F;
 
-    printf("TWI sniff: slaves:%d fist slave addr:0x%02x\n", sts, slave_addr);
-    printf("total number of TWI interrupts: %d\n", twi_ctx.cnt);
+    do {
+        sts = TWI_sniff(start, end, &slave_addr);
+        printf("TWI sniff interval: [0x%02x .. 0x%02x]\n", start, end);
+        if (sts) {
+            printf("slaves:%d fist slave addr:0x%02x\n", sts, slave_addr);
+            printf("total number of TWI interrupts: %d\n", twi_ctx.cnt);
+        } else {
+            printf("No slaves found in the interval");
+        }
+        start = slave_addr + 1;
+    } while (sts > 0);
 
     while(1) {
     }
